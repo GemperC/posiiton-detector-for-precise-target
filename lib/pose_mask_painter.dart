@@ -1,17 +1,21 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
-import 'package:body_detection/models/pose.dart';
-import 'package:body_detection/models/pose_landmark.dart';
-import 'package:body_detection/models/pose_landmark_type.dart';
+
+
+import 'pose_detection/models/pose_landmark_type.dart';
+import 'pose_detection/models/pose.dart';
+import 'pose_detection/models/pose_landmark.dart';
 
 class PoseMaskPainter extends CustomPainter {
   PoseMaskPainter({
     required this.pose,
     required this.mask,
     required this.imageSize,
+    this.debug = false,
   });
 
+  final bool? debug;
   final Pose? pose;
   final ui.Image? mask;
   final Size imageSize;
@@ -33,52 +37,55 @@ class PoseMaskPainter extends CustomPainter {
   }
 
   void _paintPose(Canvas canvas, Size size) {
-    if (pose == null) return;
+    if (debug!) {
+      if (pose == null) return;
 
-    final double hRatio =
-        imageSize.width == 0 ? 1 : size.width / imageSize.width;
-    final double vRatio =
-        imageSize.height == 0 ? 1 : size.height / imageSize.height;
+      final double hRatio =
+          imageSize.width == 0 ? 1 : size.width / imageSize.width;
+      final double vRatio =
+          imageSize.height == 0 ? 1 : size.height / imageSize.height;
 
-    offsetForPart(PoseLandmark part) =>
-        Offset(part.position.x * hRatio, part.position.y * vRatio);
+      offsetForPart(PoseLandmark part) =>
+          Offset(part.position.x * hRatio, part.position.y * vRatio);
 
-    // Landmark connections
-    final landmarksByType = {for (final it in pose!.landmarks) it.type: it};
-    for (final connection in connections) {
-      final point1 = offsetForPart(landmarksByType[connection[0]]!);
-      final point2 = offsetForPart(landmarksByType[connection[1]]!);
-      canvas.drawLine(point1, point2, linePaint);
-    }
+      // Landmark connections
+      final landmarksByType = {for (final it in pose!.landmarks) it.type: it};
 
-    for (final part in pose!.landmarks) {
-      // Landmark points
-      canvas.drawCircle(offsetForPart(part), 5, pointPaint);
-      if (part.type.isLeftSide) {
-        canvas.drawCircle(offsetForPart(part), 3, leftPointPaint);
-      } else if (part.type.isRightSide) {
-        canvas.drawCircle(offsetForPart(part), 3, rightPointPaint);
+      for (final connection in connections) {
+        final point1 = offsetForPart(landmarksByType[connection[0]]!);
+        final point2 = offsetForPart(landmarksByType[connection[1]]!);
+        canvas.drawLine(point1, point2, linePaint);
       }
 
-      // Landmark labels
-      TextSpan span = TextSpan(
-        text: part.type.toString().substring(16),
-        style: const TextStyle(
-          color: Color.fromRGBO(0, 128, 255, 1),
-          fontSize: 10,
-          shadows: [
-            ui.Shadow(
-              color: Color.fromRGBO(255, 255, 255, 1),
-              offset: Offset(1, 1),
-              blurRadius: 1,
-            ),
-          ],
-        ),
-      );
-      TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left);
-      tp.textDirection = TextDirection.ltr;
-      tp.layout();
-      tp.paint(canvas, offsetForPart(part));
+      for (final part in pose!.landmarks) {
+        // Landmark points
+        canvas.drawCircle(offsetForPart(part), 5, pointPaint);
+        if (part.type.isLeftSide) {
+          canvas.drawCircle(offsetForPart(part), 3, leftPointPaint);
+        } else if (part.type.isRightSide) {
+          canvas.drawCircle(offsetForPart(part), 3, rightPointPaint);
+        }
+
+        // Landmark labels
+        TextSpan span = TextSpan(
+          text: part.type.toString().substring(16),
+          style: const TextStyle(
+            color: Color.fromRGBO(0, 128, 255, 1),
+            fontSize: 10,
+            shadows: [
+              ui.Shadow(
+                color: Color.fromRGBO(255, 255, 255, 1),
+                offset: Offset(1, 1),
+                blurRadius: 1,
+              ),
+            ],
+          ),
+        );
+        TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left);
+        tp.textDirection = TextDirection.ltr;
+        tp.layout();
+        tp.paint(canvas, offsetForPart(part));
+      }
     }
   }
 
